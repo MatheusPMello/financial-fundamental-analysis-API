@@ -1,0 +1,32 @@
+{
+  "name": "financial-fundamental-analysis-api",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/MatheusPMello/financial-fundamental-analysis-API.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/MatheusPMello/financial-fundamental-analysis-API/issues"
+  },
+  "homepage": "https://github.com/MatheusPMello/financial-fundamental-analysis-API#readme",
+  "dependencies": {
+    "bottleneck": "^2.19.5",
+    "cors": "^2.8.5",
+    "decimal.js": "^10.6.0",
+    "dotenv": "^17.2.3",
+    "express": "^5.2.1",
+    "helmet": "^8.1.0",
+    "yahoo-finance2": "^3.10.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}
