@@ -1,5 +1,5 @@
 // src/utils/apiWrapper.ts
-import YahooFinance from 'yahoo-finance2'; // Import the Class
+import YahooFinance from 'yahoo-finance2';
 import Bottleneck from 'bottleneck';
 
 // 1. Instantiate the Library (The v3 Fix)
