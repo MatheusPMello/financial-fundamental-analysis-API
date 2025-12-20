@@ -1,7 +1,7 @@
 import NodeCache from 'node-cache';
 
 class CacheService {
-  private cache: NodeCache;
+  private readonly cache: NodeCache;
 
   constructor() {
     this.cache = new NodeCache({ stdTTL: 600 });
