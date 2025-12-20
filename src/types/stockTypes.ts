@@ -1,7 +1,4 @@
 // src/types/stockTypes.ts
-
-import { type Decimal } from 'decimal.js';
-
 export interface StockAnalysisResponse {
     ticker: string;
     currency: string;

@@ -51,7 +51,7 @@ export const performAnalysis = async (ticker: string): Promise<StockAnalysisResp
 
   // 4. Calculations
   let peRatioFormatted: string | null = null;
-  let analysisText = "Insufficient Data";
+  let analysisText;
   let epsFormatted: string | undefined;
   let pbFormatted: string | undefined;
 
