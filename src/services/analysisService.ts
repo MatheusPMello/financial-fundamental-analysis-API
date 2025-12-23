@@ -15,7 +15,9 @@ function getRawValue(field: any): number | null {
   return null;
 }
 
-export const performAnalysis = async (ticker: string): Promise<StockAnalysisResponse> => {
+export const performAnalysis = async (
+  ticker: string,
+): Promise<StockAnalysisResponse> => {
   const upperTicker = ticker.toUpperCase();
 
   // 1. Check Cache
@@ -39,13 +41,15 @@ export const performAnalysis = async (ticker: string): Promise<StockAnalysisResp
 
   // 3. Robust Data Extraction (Using helper)
   const currentPrice = getRawValue(financials?.currentPrice);
-  
+
   if (!currentPrice) {
-    throw new Error(`Insufficient financial data: Missing price for ${upperTicker}`);
+    throw new Error(
+      `Insufficient financial data: Missing price for ${upperTicker}`,
+    );
   }
 
   const currency = financials?.currency || 'USD';
-  
+
   const eps = getRawValue(stats?.trailingEps);
   const priceToBook = getRawValue(stats?.priceToBook);
 
@@ -57,24 +61,26 @@ export const performAnalysis = async (ticker: string): Promise<StockAnalysisResp
 
   // Logic: Only calculate P/E if have valid positive earnings
   if (eps !== null && eps > 0) {
-      const priceDec = new Decimal(currentPrice);
-      const epsDec = new Decimal(eps);
-      const peRatio = priceDec.dividedBy(epsDec);
-      
-      peRatioFormatted = peRatio.toFixed(2);
-      epsFormatted = epsDec.toFixed(2);
-      
-      if (peRatio.lessThan(15)) analysisText = "Potentially Undervalued (Low P/E)";
-      else if (peRatio.greaterThan(30)) analysisText = "Potentially Overvalued (High P/E)";
-      else analysisText = "Fair Value Range";
+    const priceDec = new Decimal(currentPrice);
+    const epsDec = new Decimal(eps);
+    const peRatio = priceDec.dividedBy(epsDec);
+
+    peRatioFormatted = peRatio.toFixed(2);
+    epsFormatted = epsDec.toFixed(2);
+
+    if (peRatio.lessThan(15))
+      analysisText = 'Potentially Undervalued (Low P/E)';
+    else if (peRatio.greaterThan(30))
+      analysisText = 'Potentially Overvalued (High P/E)';
+    else analysisText = 'Fair Value Range';
   } else {
-      peRatioFormatted = "N/A (Negative or Missing Earnings)";
-      analysisText = "High Risk (Unprofitable or No Data)";
+    peRatioFormatted = 'N/A (Negative or Missing Earnings)';
+    analysisText = 'High Risk (Unprofitable or No Data)';
   }
 
   // Logic: Price to Book
   if (priceToBook !== null) {
-      pbFormatted = new Decimal(priceToBook).toFixed(2);
+    pbFormatted = new Decimal(priceToBook).toFixed(2);
   }
 
   // 5. Construct Response
@@ -84,11 +90,11 @@ export const performAnalysis = async (ticker: string): Promise<StockAnalysisResp
     price: new Decimal(currentPrice).toFixed(2),
     analysis: analysisText,
     indicators: {
-        pe_ratio: peRatioFormatted,
-        eps: epsFormatted,
-        pb_ratio: pbFormatted
+      pe_ratio: peRatioFormatted,
+      eps: epsFormatted,
+      pb_ratio: pbFormatted,
     },
-    generated_at: new Date().toISOString()
+    generated_at: new Date().toISOString(),
   };
 
   // 6. Save to Cache
