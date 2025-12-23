@@ -27,5 +27,11 @@ jobs:
       - name: Type Check
         run: npx tsc --noEmit
 
-      - name: Build test
+      - name: Prettier Check
+        run: npm run format:check
+
+      - name: Lint Code
+        run: npm run lint
+
+      - name: Build Test
         run: npm run build
