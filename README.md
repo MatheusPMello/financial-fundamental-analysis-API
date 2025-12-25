@@ -6,12 +6,12 @@ A high-performance, type-safe REST API that aggregates real-time stock market da
 
 ## 🚀 Features
 
-* **Real-Time Data:** Fetches live market data using Yahoo Finance (v3).
-* **Smart Caching:** In-memory caching layer (TTL: 10 mins) to reduce latency from ~800ms to **<5ms**.
-* **Precise Math:** Uses `decimal.js` to eliminate floating-point arithmetic errors common in financial software.
-* **Rate Limiting:** `Bottleneck` implementation prevents upstream API bans by throttling requests.
-* **Qualitative Analysis:** Automatically tags stocks as "Undervalued", "Fair Value", or "Overvalued" based on P/E thresholds.
-* **Resilient Error Handling:** Gracefully handles missing financial data (e.g., unprofitable companies) without crashing.
+- **Real-Time Data:** Fetches live market data using Yahoo Finance (v3).
+- **Smart Caching:** In-memory caching layer (TTL: 10 mins) to reduce latency from ~800ms to **<5ms**.
+- **Precise Math:** Uses `decimal.js` to eliminate floating-point arithmetic errors common in financial software.
+- **Rate Limiting:** `Bottleneck` implementation prevents upstream API bans by throttling requests.
+- **Qualitative Analysis:** Automatically tags stocks as "Undervalued", "Fair Value", or "Overvalued" based on P/E thresholds.
+- **Resilient Error Handling:** Gracefully handles missing financial data (e.g., unprofitable companies) without crashing.
 
 ---
 
@@ -33,22 +33,23 @@ graph LR
 ```
 
 ### Core Components
-* **Controllers (`src/controllers`):** Handle HTTP requests, input validation, and status codes.
-* **Services (`src/services`):** Contain pure business logic (P/E calculation, data normalization).
-* **Utils (`src/utils`):** Manage external dependencies (Yahoo Finance) and infrastructure logic (Rate limiting).
+
+- **Controllers (`src/controllers`):** Handle HTTP requests, input validation, and status codes.
+- **Services (`src/services`):** Contain pure business logic (P/E calculation, data normalization).
+- **Utils (`src/utils`):** Manage external dependencies (Yahoo Finance) and infrastructure logic (Rate limiting).
 
 ---
 
 ## 🛠️ Tech Stack
 
-* **Runtime:** Node.js (LTS)
-* **Language:** TypeScript (Strict Mode enabled)
-* **Framework:** Express.js
-* **Key Libraries:**
-    * `yahoo-finance2`: Data Source (v3 implementation)
-    * `decimal.js`: Arbitrary-precision arithmetic
-    * `node-cache`: In-memory caching
-    * `bottleneck`: Task scheduling/Throttling
+- **Runtime:** Node.js (LTS)
+- **Language:** TypeScript (Strict Mode enabled)
+- **Framework:** Express.js
+- **Key Libraries:**
+  - `yahoo-finance2`: Data Source (v3 implementation)
+  - `decimal.js`: Arbitrary-precision arithmetic
+  - `node-cache`: In-memory caching
+  - `bottleneck`: Task scheduling/Throttling
 
 ---
 
@@ -74,34 +75,39 @@ financial-analyzer-api/
 ## ⚡ Getting Started
 
 ### Prerequisites
-* Node.js (v18 or higher)
-* npm
+
+- Node.js (v18 or higher)
+- npm
 
 ### Installation
 
 1.  **Clone the repository**
+
     ```bash
     git clone [https://github.com/yourusername/financial-analysis-api.git](https://github.com/yourusername/financial-analysis-api.git)
     cd financial-analysis-api
     ```
 
 2.  **Install dependencies**
+
     ```bash
     npm install
     ```
 
 3.  **Configure Environment**
     Create a `.env` file in the root directory:
+
     ```env
     PORT=3000
     NODE_ENV=development
     ```
 
 4.  **Run the Server**
+
     ```bash
     # Development mode (restarts on save)
     npm run dev
-    
+
     # Production build
     npm run build
     npm start
@@ -112,13 +118,15 @@ financial-analyzer-api/
 ## 📡 API Endpoints
 
 ### 1. Analyze Stock
+
 Returns fundamental indicators and qualitative analysis for a given ticker.
 
-* **URL:** `/api/stocks/analyze/:ticker`
-* **Method:** `GET`
-* **Example:** `http://localhost:3000/api/stocks/analyze/AAPL`
+- **URL:** `/api/stocks/analyze/:ticker`
+- **Method:** `GET`
+- **Example:** `http://localhost:3000/api/stocks/analyze/AAPL`
 
 **Success Response (200 OK):**
+
 ```json
 {
   "ticker": "AAPL",
@@ -135,6 +143,7 @@ Returns fundamental indicators and qualitative analysis for a given ticker.
 ```
 
 **Error Response (404 Not Found):**
+
 ```json
 {
   "error": "Stock ticker 'INVALID' not found."
@@ -161,12 +170,12 @@ Returns fundamental indicators and qualitative analysis for a given ticker.
 
 ## 📝 Roadmap
 
-* [x] Basic P/E Analysis
-* [x] Caching & Rate Limiting
-* [x] TypeScript Migration
-* [ ] Unit Tests (Jest)
-* [ ] Docker Containerization
-* [ ] Comparison Endpoint (Compare multiple stocks)
+- [x] Basic P/E Analysis
+- [x] Caching & Rate Limiting
+- [x] TypeScript Migration
+- [ ] Unit Tests (Jest)
+- [ ] Docker Containerization
+- [ ] Comparison Endpoint (Compare multiple stocks)
 
 ## 📄 License
 
