@@ -5,7 +5,7 @@
     "module": "commonjs",
     "outDir": "./dist",
     "rootDir": "./src",
-    
+
     /* Strict Type-Checking Options */
     "strict": true,
 

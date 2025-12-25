@@ -2,9 +2,9 @@ name: API Continuous Integration
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   quality-assurance:
@@ -28,7 +28,7 @@ jobs:
         run: npx tsc --noEmit
 
       - name: Prettier Check
-        run: npm run format:check
+        run: npm run format --check
 
       - name: Lint Code
         run: npm run lint
