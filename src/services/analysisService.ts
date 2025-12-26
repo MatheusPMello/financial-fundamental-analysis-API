@@ -8,10 +8,18 @@ Decimal.set({ precision: 20, rounding: 4 });
 // --- HELPER FUNCTION ---
 // Problem: Yahoo sometimes returns { raw: 100, fmt: '100' } and sometimes just 100.
 // Solution: This helper normalizes it to a number or null.
-function getRawValue(field: any): number | null {
+
+type YahooField = number | { raw?: number } | null | undefined;
+
+function getRawValue(field: YahooField): number | null {
   if (field === undefined || field === null) return null;
-  if (typeof field === 'number') return field;
-  if (typeof field === 'object' && field.raw !== undefined) return field.raw;
+  if (typeof field === 'number') {
+    return field;
+  }
+  if (typeof field === 'object' && typeof field.raw === 'number') {
+    return field.raw;
+  }
+
   return null;
 }
 

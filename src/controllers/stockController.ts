@@ -13,12 +13,14 @@ export const analyze = async (req: Request, res: Response): Promise<void> => {
 
     const data = await analysisService.performAnalysis(ticker);
     res.json(data);
-  } catch (error: any) {
+  } catch (error) {
     console.error(error);
 
-    if (error.message?.includes('not found')) {
-      res.status(404).json({ error: error.message });
-      return;
+    if (error instanceof Error) {
+      if (error.message?.includes('not found')) {
+        res.status(404).json({ error: error.message });
+        return;
+      }
     }
     res.status(500).json({ error: 'Internal Server Error' });
   }
