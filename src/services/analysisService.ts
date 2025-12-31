@@ -55,7 +55,6 @@ export const performAnalysis = async (ticker: string): Promise<StockAnalysisResp
   let epsFormatted: string | undefined;
   let pbFormatted: string | undefined;
 
-  // Logic: Only calculate P/E if have valid positive earnings
   if (eps !== null && eps > 0) {
       const priceDec = new Decimal(currentPrice);
       const epsDec = new Decimal(eps);
@@ -72,7 +71,6 @@ export const performAnalysis = async (ticker: string): Promise<StockAnalysisResp
       analysisText = "High Risk (Unprofitable or No Data)";
   }
 
-  // Logic: Price to Book
   if (priceToBook !== null) {
       pbFormatted = new Decimal(priceToBook).toFixed(2);
   }
