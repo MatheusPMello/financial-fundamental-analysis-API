@@ -6,8 +6,7 @@ import { cacheService } from './cacheService';
 Decimal.set({ precision: 20, rounding: 4 });
 
 // --- HELPER FUNCTION ---
-// Problem: Yahoo sometimes returns { raw: 100, fmt: '100' } and sometimes just 100.
-// Solution: This helper normalizes it to a number or null.
+// This helper normalizes Yahoo Finance data (which can be { raw: number } or just number) to a number or null.
 
 type YahooField = number | { raw?: number } | null | undefined;
 
