@@ -1,11 +1,12 @@
-const { createDefaultPreset } = require("ts-jest");
+import { createDefaultPreset } from 'ts-jest';
+import type { Config } from 'jest';
 
+// Get the default transform configuration from ts-jest
 const tsJestTransformCfg = createDefaultPreset().transform;
 
-module.exports = {
-
+const config: Config = {
   testEnvironment: "node",
-
+  
   transform: {
     ...tsJestTransformCfg, 
   },
@@ -15,3 +16,5 @@ module.exports = {
   forceExit: true,
   clearMocks: true,
 };
+
+export default config;
