@@ -17,8 +17,7 @@ A high-performance, type-safe REST API that aggregates real-time stock market da
 
 ## 🏗️ Architecture
 
-This project follows a **Layered Architecture** (Controller-Service-Repository pattern) to ensure separation of concerns and testability.
-
+This project follows a **Layered Architecture** to ensure separation of concerns, keeping business logic independent from HTTP delivery and external integrations.
 ```mermaid
 graph LR
     A[Client] -->|GET /analyze/:ticker| B(Controller Layer)
