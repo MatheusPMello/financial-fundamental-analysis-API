@@ -173,7 +173,7 @@ Returns fundamental indicators and qualitative analysis for a given ticker.
 - [x] Caching & Rate Limiting
 - [x] TypeScript Migration
 - [ ] Unit Tests (Jest)
-- [ ] Docker Containerization
+- [x] Docker Containerization
 - [ ] Comparison Endpoint (Compare multiple stocks)
 
 ## 📄 License
