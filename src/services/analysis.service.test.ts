@@ -1,6 +1,7 @@
 import { performAnalysis } from './analysisService';
 import { getStockDetails } from '../utils/apiWrapper';
 import { cacheService } from './cacheService';
+import { NotFoundError, InsufficientDataError } from '../types/errors';
 
 jest.mock('../utils/apiWrapper');
 jest.mock('./cacheService');
@@ -18,10 +19,10 @@ describe('performAnalysis (Business Logic)', () => {
     const mockCachedResponse = { 
         ticker: 'AAPL', 
         currency: 'USD',
-        price: '100', 
-        analysis: 'Fair', 
-        indicators: { pe_ratio: '10', eps: '10', pb_ratio: '1' },
-        generated_at: '2024-01-01'
+        price: '100.00', 
+        analysis: 'Fair Value Range', 
+        indicators: { pe_ratio: '10.00', eps: '10.00', pb_ratio: '1.00' },
+        generated_at: '2024-01-01T00:00:00.000Z'
     };
     
     mockedCacheService.get.mockReturnValue(mockCachedResponse);
@@ -33,25 +34,76 @@ describe('performAnalysis (Business Logic)', () => {
     expect(mockedGetStockDetails).not.toHaveBeenCalled();
   });
 
-  it('should fetch data, calculate P/E, and cache it if cache is empty', async () => {
-    mockedCacheService.get.mockReturnValue(null);
+  it('should fetch data, calculate P/E, and cache it if cache is empty (Cache Miss)', async () => {
+    mockedCacheService.get.mockReturnValue(undefined);
 
     const mockApiData = {
       financialData: { 
         currentPrice: 150.00, 
-        currency: 'USD' 
+        financialCurrency: 'USD' 
       },
       defaultKeyStatistics: { 
         trailingEps: 5.00, 
-        priceToBook: { raw: 3.5 } 
+        priceToBook: 3.5 
       }
     };
     
-    mockedGetStockDetails.mockResolvedValue(mockApiData as any); 
+    mockedGetStockDetails.mockResolvedValue(mockApiData as unknown as ReturnType<typeof getStockDetails>); 
 
     const result = await performAnalysis('AAPL');
 
     expect(result.indicators.pe_ratio).toBe('30.00');
+    expect(result.indicators.eps).toBe('5.00');
+    expect(result.indicators.pb_ratio).toBe('3.50');
+    expect(mockedCacheService.set).toHaveBeenCalledWith('AAPL', expect.any(Object));
+  });
+
+  it('should throw NotFoundError if the ticker symbol does not exist', async () => {
+    mockedCacheService.get.mockReturnValue(undefined);
+    mockedGetStockDetails.mockResolvedValue(null);
+
+    await expect(performAnalysis('INVALID')).rejects.toThrow(NotFoundError);
+    expect(mockedCacheService.set).not.toHaveBeenCalled();
+  });
+
+  it('should throw InsufficientDataError if stock current price is missing', async () => {
+    mockedCacheService.get.mockReturnValue(undefined);
+    
+    const mockApiData = {
+      financialData: { 
+        financialCurrency: 'USD' 
+      },
+      defaultKeyStatistics: { 
+        trailingEps: 5.00 
+      }
+    };
+    mockedGetStockDetails.mockResolvedValue(mockApiData as unknown as ReturnType<typeof getStockDetails>);
+
+    await expect(performAnalysis('AAPL')).rejects.toThrow(InsufficientDataError);
+    expect(mockedCacheService.set).not.toHaveBeenCalled();
+  });
+
+  it('should flag company as High Risk (N/A P/E) if EPS is negative', async () => {
+    mockedCacheService.get.mockReturnValue(undefined);
+
+    const mockApiData = {
+      financialData: { 
+        currentPrice: 100.00, 
+        financialCurrency: 'USD' 
+      },
+      defaultKeyStatistics: { 
+        trailingEps: -2.00,
+        priceToBook: null
+      }
+    };
+    mockedGetStockDetails.mockResolvedValue(mockApiData as unknown as ReturnType<typeof getStockDetails>);
+
+    const result = await performAnalysis('AAPL');
+
+    expect(result.indicators.pe_ratio).toBe('N/A (Negative or Missing Earnings)');
+    expect(result.analysis).toBe('High Risk (Unprofitable or No Data)');
+    expect(result.indicators.eps).toBe('-2.00');
+    expect(result.indicators.pb_ratio).toBeUndefined();
     expect(mockedCacheService.set).toHaveBeenCalled();
   });
 });

@@ -1,10 +1,11 @@
 import NodeCache from 'node-cache';
+import { SETTINGS } from '../config/settings';
 
 class CacheService {
   private readonly cache: NodeCache;
 
   constructor() {
-    this.cache = new NodeCache({ stdTTL: 600 });
+    this.cache = new NodeCache({ stdTTL: SETTINGS.cache.ttl });
   }
 
   /**
@@ -20,7 +21,7 @@ class CacheService {
    * @param key Unique identifier
    * @param value The data to save
    */
-  set(key: string, value: any): boolean {
+  set<T>(key: string, value: T): boolean {
     return this.cache.set(key, value);
   }
 }

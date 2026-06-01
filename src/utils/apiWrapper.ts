@@ -1,10 +1,10 @@
-// src/utils/apiWrapper.ts
 import YahooFinance from 'yahoo-finance2';
 import Bottleneck from 'bottleneck';
+import { SETTINGS } from '../config/settings';
 
 // 1. Instantiate the Library and Set All Configs (The Strict v3 Way)
 const yahooFinance = new YahooFinance({
-  suppressNotices: ['yahooSurvey'], // Notice suppression is now a constructor option
+  suppressNotices: ['yahooSurvey'],
   fetchOptions: {
     headers: {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
@@ -12,13 +12,18 @@ const yahooFinance = new YahooFinance({
   },
 });
 
-// 2. Setup the Rate Limiter (333ms delay, 1 request at a time)
+// 2. Setup the Rate Limiter using values from global settings
 const limiter = new Bottleneck({
-  minTime: 333,
-  maxConcurrent: 1,
+  minTime: SETTINGS.rateLimiter.minTime,
+  maxConcurrent: SETTINGS.rateLimiter.maxConcurrent,
 });
 
-// 3. The Wrapper Function
+/**
+ * Throttled wrapper function to fetch financial and statistic summaries for a stock ticker.
+ * 
+ * @param ticker Stock symbol (e.g. "AAPL")
+ * @returns Result object from Yahoo Finance or null if the ticker is not found
+ */
 export const getStockDetails = limiter.wrap(
   async (ticker: string) => {
     try {
@@ -26,9 +31,10 @@ export const getStockDetails = limiter.wrap(
         modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'],
       });
       return result;
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Gracefully handle tickers that do not exist
-      if (error.message && error.message.includes('Not Found')) {
+      if (error instanceof Error && error.message && error.message.includes('Not Found')) {
+        // eslint-disable-next-line no-console
         console.warn(`Warning: Ticker ${ticker} not found.`);
         return null;
       }
