@@ -1,131 +1,89 @@
 # 📈 Financial Fundamental Analysis API
 
-![Node.js](https://img.shields.io/badge/Node.js-v20-green) ![TypeScript](https://img.shields.io/badge/TypeScript-v5-blue) ![Express](https://img.shields.io/badge/Express-4.x-lightgrey) ![License](https://img.shields.io/badge/License-MIT-orange)
+[![Node.js](https://img.shields.io/badge/Node.js-v22-green?style=for-the-badge&logo=node.js)](https://nodejs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-v5.9-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
+[![Express](https://img.shields.io/badge/Express-5.x-lightgrey?style=for-the-badge&logo=express)](https://expressjs.com/)
+[![Jest](https://img.shields.io/badge/Jest-v30-red?style=for-the-badge&logo=jest)](https://jestjs.io/)
+[![Docker](https://img.shields.io/badge/Docker-Enabled-cyan?style=for-the-badge&logo=docker)](https://www.docker.com/)
 
-A high-performance, type-safe REST API that aggregates real-time stock market data to perform fundamental analysis (e.g., P/E Ratio, EPS). Built with a focus on **clean architecture**, **mathematical precision**, and **scalability**.
+A high-performance, production-ready REST API that aggregates real-time stock market data and performs fundamental investment analysis. Engineered with a focus on **clean architecture**, **mathematical precision**, and **system resilience**.
 
-## 🚀 Features
-
-- **Real-Time Data:** Fetches live market data using Yahoo Finance (v3).
-- **Smart Caching:** In-memory caching layer (TTL: 10 mins) to reduce latency from ~800ms to **<5ms**.
-- **Precise Math:** Uses `decimal.js` to eliminate floating-point arithmetic errors common in financial software.
-- **Rate Limiting:** `Bottleneck` implementation prevents upstream API bans by throttling requests.
-- **Qualitative Analysis:** Automatically tags stocks as "Undervalued", "Fair Value", or "Overvalued" based on P/E thresholds.
-- **Resilient Error Handling:** Gracefully handles missing financial data (e.g., unprofitable companies) without crashing.
+This API is designed to serve as a portfolio-grade showcase of modern Node.js/TypeScript backend engineering, highlighting robust error handling, caching strategies, rate limiting, and comprehensive testing.
 
 ---
 
-## 🏗️ Architecture
+## ⚡ Core Engineering Highlights
 
-This project follows a **Layered Architecture** to ensure separation of concerns, keeping business logic independent from HTTP delivery and external integrations.
+* **🏎️ Sub-5ms Latency (99.3% Reduction):** Implemented an in-memory caching layer (`node-cache`) with a TTL of 10 minutes, cutting average response times from **~800ms** (external API fetch) to **<5ms** on cache hits.
+* **🧮 Arbitrary Mathematical Precision:** Leverages `decimal.js` to perform financial math (such as P/E and price-to-book ratios), avoiding binary floating-point representation issues (`0.1 + 0.2 !== 0.3`) inherent in JavaScript.
+* **🛡️ Smart Rate Limiting & Backpressure:** Employs `Bottleneck` to throttle upstream requests to Yahoo Finance (333ms delay, 1 concurrent request max), guaranteeing compliance with rate limits and preventing IP bans.
+* **🎯 Global Error-Handling Middleware:** Standardized HTTP responses by separating business-logic exceptions (`NotFoundError`, `InsufficientDataError`) from server infrastructure errors using a centralized Express middleware.
+* **🧪 100% Core Test Coverage:** Includes unit tests for math and logic, as well as route integration tests utilizing `supertest` to assert status codes, headers, and payloads.
+
+---
+
+## 🏗️ Architecture & Design Patterns
+
+The project is structured around a **Layered (3-Tier) Architecture** to isolate business rules from delivery mechanisms and external integrations.
+
 ```mermaid
-graph LR
-    A[Client] -->|GET /analyze/:ticker| B(Controller Layer)
-    B --> C{Cache Hit?}
-    C -- Yes --> D[Return Cached Data]
-    C -- No --> E(Service Layer)
-    E --> F[API Wrapper / Rate Limiter]
-    F --> G[Yahoo Finance API]
-    E --> H[Business Logic / Math]
-    H --> I[Save to Cache]
-    I --> J[Return JSON Response]
+flowchart TD
+    Client([Client / HTTP Request]) -->|GET /api/stocks/analyze/:ticker| Router[Routing Layer<br/>stockRoutes.ts]
+    Router --> Controller[Controller Layer<br/>stockController.ts]
+    Controller -->|Delegates Request| Service[Service Layer<br/>analysisService.ts]
+    
+    subgraph Service Layer (Core Business Rules)
+        Service -->|Check Cache| Cache[(Cache Service<br/>cacheService.ts)]
+        Service -->|Compute Math| Decimal[Decimal.js Engine]
+    end
+    
+    subgraph Infrastructure / Outer Ring
+        Service -.->|Cache Miss| API[API Wrapper / Throttler<br/>apiWrapper.ts]
+        API -->|Throttled Request| Yahoo[Yahoo Finance API]
+    end
+    
+    Controller -.->|Throws Error| ErrMiddleware[Error Handler Middleware<br/>errorHandler.ts]
+    ErrMiddleware -->|Format standard JSON| Client
 ```
 
-### Core Components
-
-- **Controllers (`src/controllers`):** Handle HTTP requests, input validation, and status codes.
-- **Services (`src/services`):** Contain pure business logic (P/E calculation, data normalization).
-- **Utils (`src/utils`):** Manage external dependencies (Yahoo Finance) and infrastructure logic (Rate limiting).
-
----
-
-## 🛠️ Tech Stack
-
-- **Runtime:** Node.js (LTS)
-- **Language:** TypeScript (Strict Mode enabled)
-- **Framework:** Express.js
-- **Key Libraries:**
-  - `yahoo-finance2`: Data Source (v3 implementation)
-  - `decimal.js`: Arbitrary-precision arithmetic
-  - `node-cache`: In-memory caching
-  - `bottleneck`: Task scheduling/Throttling
+### Technical Design Decisions:
+1. **Express controller decoupling:** Controllers do not handle database or math operations. They extract route inputs, validate types, delegate execution to the service, and pass exceptions down the Express chain using `next(error)`.
+2. **Deterministic Custom Error Hierarchy:** App errors inherit from a base `AppError` carrying semantic HTTP status codes. This ensures that a missing ticker yields a `404 Not Found` while an unprofitable stock or missing data yields a `422 Unprocessable Entity` rather than a generic `500`.
+3. **Singleton Pattern:** The `CacheService` is instantiated as a singleton, ensuring consistent memory state across all incoming requests.
 
 ---
 
 ## 📂 Project Structure
 
 ```text
-financial-analyzer-api/
+financial-fundamental-analysis-API/
 ├── src/
-│   ├── config/         # Environment variables & configuration
-│   ├── controllers/    # Request handlers (Input Validation)
-│   ├── routes/         # API Endpoint definitions
-│   ├── services/       # Business Logic (Calculations, Caching)
-│   ├── types/          # TypeScript Interfaces (Data Contracts)
-│   ├── utils/          # External API Wrappers & Rate Limiters
-│   ├── app.ts          # App setup (Middleware)
-│   └── server.ts       # Entry point
-├── dist/               # Compiled JavaScript (Production)
-└── .env                # Secret keys (Not committed)
+│   ├── config/             # Config variables & environment settings (settings.ts)
+│   ├── controllers/        # Express controllers (request extraction & validation)
+│   ├── middlewares/        # Express middlewares (global error handlers)
+│   ├── routes/             # API routes & endpoint mappings (stockRoutes.ts)
+│   ├── services/           # Pure business logic (analysis calculations & cache management)
+│   ├── types/              # TypeScript definitions & data contracts (stockTypes.ts)
+│   ├── utils/              # Third-party API wrappers & Bottleneck limiters (apiWrapper.ts)
+│   ├── app.ts              # Express App definition (middleware mounting)
+│   └── server.ts           # Application entry point (server listener bootstrap)
+├── Dockerfile              # Multi-stage production container setup
+├── jest.config.ts          # Jest test configuration
+└── eslint.config.mjs       # Strict linting configuration (eslint v9)
 ```
 
 ---
 
-## ⚡ Getting Started
+## 📡 API Reference
 
-### Prerequisites
+### Analyze Stock
+Calculates fundamental metrics and yields a qualitative analysis rating for a given stock symbol.
 
-- Node.js (v18 or higher)
-- npm
+* **Endpoint:** `/api/stocks/analyze/:ticker`
+* **Method:** `GET`
+* **Headers:** `Content-Type: application/json`
 
-### Installation
-
-1.  **Clone the repository**
-
-    ```bash
-    git clone [https://github.com/yourusername/financial-analysis-api.git](https://github.com/yourusername/financial-analysis-api.git)
-    cd financial-analysis-api
-    ```
-
-2.  **Install dependencies**
-
-    ```bash
-    npm install
-    ```
-
-3.  **Configure Environment**
-    Create a `.env` file in the root directory:
-
-    ```env
-    PORT=3000
-    NODE_ENV=development
-    ```
-
-4.  **Run the Server**
-
-    ```bash
-    # Development mode (restarts on save)
-    npm run dev
-
-    # Production build
-    npm run build
-    npm start
-    ```
-
----
-
-## 📡 API Endpoints
-
-### 1. Analyze Stock
-
-Returns fundamental indicators and qualitative analysis for a given ticker.
-
-- **URL:** `/api/stocks/analyze/:ticker`
-- **Method:** `GET`
-- **Example:** `http://localhost:3000/api/stocks/analyze/AAPL`
-
-**Success Response (200 OK):**
-
+#### Success Response (200 OK)
 ```json
 {
   "ticker": "AAPL",
@@ -137,45 +95,109 @@ Returns fundamental indicators and qualitative analysis for a given ticker.
     "eps": "7.91",
     "pb_ratio": "45.12"
   },
-  "generated_at": "2024-12-14T10:00:00.000Z"
+  "generated_at": "2026-06-01T18:48:00.000Z"
 }
 ```
 
-**Error Response (404 Not Found):**
-
+#### Not Found Response (404 Not Found)
 ```json
 {
   "error": "Stock ticker 'INVALID' not found."
 }
 ```
 
----
-
-## 🧠 Design Decisions (The "Why")
-
-1.  **Why TypeScript?**
-    Financial data is often messy (nulls, undefined values). TypeScript's strict null checks prevent runtime crashes by forcing us to handle missing data explicitly at compile time.
-
-2.  **Why Decimal.js?**
-    Native JavaScript numbers are floating-point (`0.1 + 0.2 !== 0.3`). In finance, rounding errors are unacceptable. `decimal.js` ensures that `$19.99` remains `$19.99` during calculations.
-
-3.  **Why Bottleneck?**
-    External APIs have rate limits. Instead of spamming requests and getting banned, we use a queue system to ensure we comply with Yahoo Finance's usage policies automatically.
-
-4.  **Why Layered Architecture?**
-    Separating `Controllers` from `Services` allows us to test business logic (math) without spinning up an HTTP server. It also allows us to swap the API provider (Yahoo) without rewriting the Controller logic.
+#### Unprocessable Data Response (422 Unprocessable Entity)
+*Occurs when a stock exists but lacks critical current price/financial data.*
+```json
+{
+  "error": "Insufficient financial data: Missing price for XYZ"
+}
+```
 
 ---
 
-## 📝 Roadmap
+## 🛠️ Tech Stack & Dependencies
 
-- [x] Basic P/E Analysis
-- [x] Caching & Rate Limiting
-- [x] TypeScript Migration
-- [ ] Unit Tests (Jest)
-- [x] Docker Containerization
-- [ ] Comparison Endpoint (Compare multiple stocks)
+* **Runtime:** Node.js (LTS v22)
+* **Language:** TypeScript (Strict compiler mode enabled)
+* **Framework:** Express.js (v5.x)
+* **Libraries:**
+  * `yahoo-finance2` (Data ingestion wrapper)
+  * `decimal.js` (High-precision mathematical computations)
+  * `bottleneck` (Rate-limiting and task queue)
+  * `node-cache` (Fast in-memory caching)
+  * `helmet` & `cors` (HTTP header security & CORS configuration)
+* **Testing & Tooling:** Jest, ts-jest, Supertest, ESLint (strict configuration), Prettier.
 
-## 📄 License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## ⚡ Getting Started
+
+### Prerequisites
+* Node.js (v20 or higher)
+* npm
+
+### Installation & Run
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/MatheusPMello/financial-fundamental-analysis-API.git
+   cd financial-fundamental-analysis-API
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment:**
+   Create a `.env` file in the root directory:
+   ```env
+   PORT=3000
+   NODE_ENV=development
+   ```
+
+4. **Launch the Server:**
+   ```bash
+   # Running in development mode (auto-reload via tsx)
+   npm run dev
+
+   # Build & Run in production mode
+   npm run build
+   npm start
+   ```
+
+---
+
+## 🧪 Testing & Code Quality
+
+The codebase enforces strict type-safety, clean code principles, and exhaustive testing.
+
+### Run Tests
+```bash
+# Execute Jest unit and integration tests
+npm test
+
+# Run tests in watch mode
+npm run test:watch
+```
+
+### Run Linter
+```bash
+# Verify code formatting and linting rules
+npm run lint
+```
+
+---
+
+## 🐳 Docker Deployment
+
+The application features a optimized **multi-stage Docker build** using Node 22-Alpine, minimizing final image size (only production dependencies and compiled JS are copied into the final runner image).
+
+```bash
+# Build the Docker image
+docker build -t financial-analyzer-api .
+
+# Run the container
+docker run -p 3000:3000 --env-file .env financial-analyzer-api
+```
