@@ -32,12 +32,12 @@ flowchart TD
     Router --> Controller[Controller Layer<br/>stockController.ts]
     Controller -->|Delegates Request| Service[Service Layer<br/>analysisService.ts]
     
-    subgraph Service Layer (Core Business Rules)
+    subgraph service_layer ["Service Layer (Core Business Rules)"]
         Service -->|Check Cache| Cache[(Cache Service<br/>cacheService.ts)]
         Service -->|Compute Math| Decimal[Decimal.js Engine]
     end
     
-    subgraph Infrastructure / Outer Ring
+    subgraph infra ["Infrastructure / Outer Ring"]
         Service -.->|Cache Miss| API[API Wrapper / Throttler<br/>apiWrapper.ts]
         API -->|Throttled Request| Yahoo[Yahoo Finance API]
     end
