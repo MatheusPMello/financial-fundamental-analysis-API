@@ -7,7 +7,24 @@ import { errorHandler } from './middlewares/errorHandler';
 const app = express();
 
 app.use(helmet());
-app.use(cors());
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000'];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps, curl, or server-to-server)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error('Not allowed by CORS'));
+    },
+  })
+);
+
 app.use(express.json());
 
 app.use('/api/stocks', stockRoutes);

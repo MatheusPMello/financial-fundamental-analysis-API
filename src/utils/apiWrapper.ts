@@ -33,7 +33,7 @@ export const getStockDetails = limiter.wrap(
       return result;
     } catch (error: unknown) {
       // Gracefully handle tickers that do not exist
-      if (error instanceof Error && error.message && error.message.includes('Not Found')) {
+      if (error instanceof Error && error.message?.includes('Not Found')) {
         // eslint-disable-next-line no-console
         console.warn(`Warning: Ticker ${ticker} not found.`);
         return null;

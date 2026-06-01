@@ -45,17 +45,18 @@ export const performAnalysis = async (
   ticker: string,
 ): Promise<StockAnalysisResponse> => {
   const upperTicker = ticker.toUpperCase();
+  const sanitizedTicker = upperTicker.replace(/[^A-Z0-9.-]/g, '_');
 
   // 1. Check Cache
   const cachedData = cacheService.get<StockAnalysisResponse>(upperTicker);
   if (cachedData) {
     // eslint-disable-next-line no-console
-    console.log(`[CACHE HIT] Serving ${upperTicker} from memory.`);
+    console.log(`[CACHE HIT] Serving ${sanitizedTicker} from memory.`);
     return cachedData;
   }
 
   // eslint-disable-next-line no-console
-  console.log(`[CACHE MISS] Fetching ${upperTicker} from API...`);
+  console.log(`[CACHE MISS] Fetching ${sanitizedTicker} from API...`);
 
   // 2. Fetch Data from external wrapper
   const rawData = await getStockDetails(upperTicker);

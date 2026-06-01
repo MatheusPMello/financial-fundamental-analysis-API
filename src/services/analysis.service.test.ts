@@ -39,11 +39,11 @@ describe('performAnalysis (Business Logic)', () => {
 
     const mockApiData = {
       financialData: { 
-        currentPrice: 150.00, 
+        currentPrice: 150, 
         financialCurrency: 'USD' 
       },
       defaultKeyStatistics: { 
-        trailingEps: 5.00, 
+        trailingEps: 5, 
         priceToBook: 3.5 
       }
     };
@@ -74,7 +74,7 @@ describe('performAnalysis (Business Logic)', () => {
         financialCurrency: 'USD' 
       },
       defaultKeyStatistics: { 
-        trailingEps: 5.00 
+        trailingEps: 5 
       }
     };
     mockedGetStockDetails.mockResolvedValue(mockApiData as unknown as ReturnType<typeof getStockDetails>);
@@ -88,11 +88,11 @@ describe('performAnalysis (Business Logic)', () => {
 
     const mockApiData = {
       financialData: { 
-        currentPrice: 100.00, 
+        currentPrice: 100, 
         financialCurrency: 'USD' 
       },
       defaultKeyStatistics: { 
-        trailingEps: -2.00,
+        trailingEps: -2,
         priceToBook: null
       }
     };
