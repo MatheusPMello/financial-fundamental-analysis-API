@@ -15,10 +15,10 @@ This API is designed to serve as a portfolio-grade showcase of modern Node.js/Ty
 ## ⚡ Core Engineering Highlights
 
 * **🏎️ Sub-5ms Latency (99.3% Reduction):** Implemented an in-memory caching layer (`node-cache`) with a TTL of 10 minutes, cutting average response times from **~800ms** (external API fetch) to **<5ms** on cache hits.
-* **🧮 Arbitrary Mathematical Precision:** Leverages `decimal.js` to perform financial math (such as P/E and price-to-book ratios), avoiding binary floating-point representation issues (`0.1 + 0.2 !== 0.3`) inherent in JavaScript.
-* **🛡️ Smart Rate Limiting & Backpressure:** Employs `Bottleneck` to throttle upstream requests to Yahoo Finance (333ms delay, 1 concurrent request max), guaranteeing compliance with rate limits and preventing IP bans.
-* **🎯 Global Error-Handling Middleware:** Standardized HTTP responses by separating business-logic exceptions (`NotFoundError`, `InsufficientDataError`) from server infrastructure errors using a centralized Express middleware.
-* **🧪 100% Core Test Coverage:** Includes unit tests for math and logic, as well as route integration tests utilizing `supertest` to assert status codes, headers, and payloads.
+* **Arbitrary Mathematical Precision:** Leverages `decimal.js` to perform financial math (such as P/E and price-to-book ratios), avoiding binary floating-point representation issues (`0.1 + 0.2 !== 0.3`) inherent in JavaScript.
+* **Smart Rate Limiting & Backpressure:** Employs `Bottleneck` to throttle upstream requests to Yahoo Finance (333ms delay, 1 concurrent request max), guaranteeing compliance with rate limits and preventing IP bans.
+* **Global Error-Handling Middleware:** Standardized HTTP responses by separating business-logic exceptions (`NotFoundError`, `InsufficientDataError`) from server infrastructure errors using a centralized Express middleware.
+* **100% Core Test Coverage:** Includes unit tests for math and logic, as well as route integration tests utilizing `supertest` to assert status codes, headers, and payloads.
 
 ---
 
