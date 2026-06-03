@@ -1,6 +1,6 @@
 import { getStockDetails } from '../utils/apiWrapper';
 import Decimal from 'decimal.js';
-import { StockAnalysisResponse, FundamentalDataPayload } from '../types/stockTypes';
+import { StockAnalysisResponse } from '../types/stockTypes';
 import { cacheService } from './cacheService';
 import { SETTINGS } from '../config/settings';
 import { NotFoundError, InsufficientDataError } from '../types/errors';
@@ -85,17 +85,20 @@ function calculateNetDebtToEbitda(
  * @returns Calculated ROIC ratio, or null if insufficient data
  */
 function calculateROIC(
-  incomeStatement: any,
-  balanceSheet: any
+  incomeStatement: unknown,
+  balanceSheet: unknown
 ): number | null {
   if (!incomeStatement || !balanceSheet) {
     return null;
   }
 
+  const inc = incomeStatement as Record<string, unknown>;
+  const bal = balanceSheet as Record<string, unknown>;
+
   // 1. Extract and normalize income statement values
-  const operatingIncome = getRawValue(incomeStatement.operatingIncome);
-  const taxExpense = getRawValue(incomeStatement.incomeTaxExpense);
-  const incomeBeforeTax = getRawValue(incomeStatement.incomeBeforeTax);
+  const operatingIncome = getRawValue(inc.operatingIncome as YahooField);
+  const taxExpense = getRawValue(inc.incomeTaxExpense as YahooField);
+  const incomeBeforeTax = getRawValue(inc.incomeBeforeTax as YahooField);
 
   if (operatingIncome === null || taxExpense === null || incomeBeforeTax === null || incomeBeforeTax === 0) {
     return null;
@@ -103,16 +106,16 @@ function calculateROIC(
 
   // 2. Extract and normalize balance sheet values
   // Support both totalDebt property or shortLongTermDebt + longTermDebt fallback
-  const rawTotalDebt = getRawValue(balanceSheet.totalDebt);
+  const rawTotalDebt = getRawValue(bal.totalDebt as YahooField);
   const totalDebt = rawTotalDebt !== null 
     ? rawTotalDebt 
-    : ((getRawValue(balanceSheet.shortLongTermDebt) ?? 0) + (getRawValue(balanceSheet.longTermDebt) ?? 0));
+    : ((getRawValue(bal.shortLongTermDebt as YahooField) ?? 0) + (getRawValue(bal.longTermDebt as YahooField) ?? 0));
 
-  const totalShareholderEquity = getRawValue(balanceSheet.totalStockholderEquity) ?? getRawValue(balanceSheet.totalShareholderEquity);
+  const totalShareholderEquity = getRawValue(bal.totalStockholderEquity as YahooField) ?? getRawValue(bal.totalShareholderEquity as YahooField);
   
-  const cashAndEquivalents = getRawValue(balanceSheet.cashAndCashEquivalents) 
-    ?? getRawValue(balanceSheet.cash) 
-    ?? getRawValue(balanceSheet.cashCashEquivalentsAndShortTermInvestments);
+  const cashAndEquivalents = getRawValue(bal.cashAndCashEquivalents as YahooField) 
+    ?? getRawValue(bal.cash as YahooField) 
+    ?? getRawValue(bal.cashCashEquivalentsAndShortTermInvestments as YahooField);
 
   if (totalShareholderEquity === null || cashAndEquivalents === null) {
     return null;
@@ -232,7 +235,7 @@ export const performAnalysis = async (
   const priceToBook = getRawValue(stats?.priceToBook);
 
   // New native metrics
-  const enterpriseToEbitda = getRawValue((financials as any)?.enterpriseToEbitda);
+  const enterpriseToEbitda = getRawValue((financials as Record<string, unknown>)?.enterpriseToEbitda as YahooField);
   const returnOnEquity = getRawValue(financials?.returnOnEquity);
   const currentRatio = getRawValue(financials?.currentRatio);
 

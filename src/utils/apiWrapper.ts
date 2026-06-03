@@ -37,10 +37,13 @@ export const getStockDetails = limiter.wrap(
       });
 
       // Helper to normalize Yahoo Finance field values
-      const getRawVal = (field: any): number | null => {
+      const getRawVal = (field: unknown): number | null => {
         if (field === undefined || field === null) return null;
         if (typeof field === 'number') return field;
-        if (typeof field === 'object' && typeof field.raw === 'number') return field.raw;
+        if (typeof field === 'object' && field !== null && 'raw' in field) {
+          const rawVal = (field as { raw: unknown }).raw;
+          if (typeof rawVal === 'number') return rawVal;
+        }
         return null;
       };
 
@@ -50,8 +53,8 @@ export const getStockDetails = limiter.wrap(
           getRawVal(result.incomeStatementHistory.incomeStatementHistory[0].operatingIncome) !== null;
         
         const hasBalance = result.balanceSheetHistory?.balanceSheetStatements?.[0] &&
-          (getRawVal((result.balanceSheetHistory.balanceSheetStatements[0] as any).totalDebt) !== null ||
-           getRawVal((result.balanceSheetHistory.balanceSheetStatements[0] as any).shortLongTermDebt) !== null);
+          (getRawVal((result.balanceSheetHistory.balanceSheetStatements[0] as unknown as Record<string, unknown>).totalDebt) !== null ||
+           getRawVal((result.balanceSheetHistory.balanceSheetStatements[0] as unknown as Record<string, unknown>).shortLongTermDebt) !== null);
 
         if (!hasIncome || !hasBalance) {
           const oneYearAgo = new Date();
@@ -64,34 +67,36 @@ export const getStockDetails = limiter.wrap(
 
           if (timeSeries && timeSeries.length > 0) {
             // Find the latest entry that has date
-            const latest = timeSeries[timeSeries.length - 1] as any;
+            const latest = timeSeries[timeSeries.length - 1] as unknown as Record<string, unknown>;
             
             if (!hasIncome) {
+              type IncomeElement = NonNullable<typeof result.incomeStatementHistory>['incomeStatementHistory'][number];
               result.incomeStatementHistory = {
                 maxAge: 1,
                 incomeStatementHistory: [
                   {
                     maxAge: 1,
-                    endDate: latest.date,
-                    operatingIncome: latest.operatingIncome ?? latest.EBIT ?? null,
-                    incomeTaxExpense: latest.taxProvision ?? null,
-                    incomeBeforeTax: latest.pretaxIncome ?? null,
-                  } as any
+                    endDate: latest.date as Date,
+                    operatingIncome: (latest.operatingIncome ?? latest.EBIT ?? null) as number | null,
+                    incomeTaxExpense: (latest.taxProvision ?? null) as number | null,
+                    incomeBeforeTax: (latest.pretaxIncome ?? null) as number | null,
+                  } as unknown as IncomeElement
                 ]
               };
             }
 
             if (!hasBalance) {
+              type BalanceElement = NonNullable<typeof result.balanceSheetHistory>['balanceSheetStatements'][number];
               result.balanceSheetHistory = {
                 maxAge: 1,
                 balanceSheetStatements: [
                   {
                     maxAge: 1,
-                    endDate: latest.date,
-                    totalDebt: latest.totalDebt ?? null,
-                    totalStockholderEquity: latest.stockholdersEquity ?? latest.commonStockEquity ?? null,
-                    cashAndCashEquivalents: latest.cashAndCashEquivalents ?? latest.cashCashEquivalentsAndShortTermInvestments ?? null,
-                  } as any
+                    endDate: latest.date as Date,
+                    totalDebt: (latest.totalDebt ?? null) as number | null,
+                    totalStockholderEquity: (latest.stockholdersEquity ?? latest.commonStockEquity ?? null) as number | null,
+                    cashAndCashEquivalents: (latest.cashAndCashEquivalents ?? latest.cashCashEquivalentsAndShortTermInvestments ?? null) as number | null,
+                  } as unknown as BalanceElement
                 ]
               };
             }
