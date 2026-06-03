@@ -107,9 +107,8 @@ function calculateROIC(
   // 2. Extract and normalize balance sheet values
   // Support both totalDebt property or shortLongTermDebt + longTermDebt fallback
   const rawTotalDebt = getRawValue(bal.totalDebt as YahooField);
-  const totalDebt = rawTotalDebt !== null 
-    ? rawTotalDebt 
-    : ((getRawValue(bal.shortLongTermDebt as YahooField) ?? 0) + (getRawValue(bal.longTermDebt as YahooField) ?? 0));
+  const totalDebt = rawTotalDebt ??
+    ((getRawValue(bal.shortLongTermDebt as YahooField) ?? 0) + (getRawValue(bal.longTermDebt as YahooField) ?? 0));
 
   const totalShareholderEquity = getRawValue(bal.totalStockholderEquity as YahooField) ?? getRawValue(bal.totalShareholderEquity as YahooField);
   
@@ -162,8 +161,8 @@ function evaluateMetrics(
     return 'High Risk (Unprofitable or No Data)';
   }
 
-  // Flag high risk if leverage is too high (Net Debt / EBITDA > 4.0)
-  if (netDebtToEbitda !== null && netDebtToEbitda > 4.0) {
+  // Flag high risk if leverage is too high (Net Debt / EBITDA > 4)
+  if (netDebtToEbitda !== null && netDebtToEbitda > 4) {
     return 'High Risk (Elevated Leverage)';
   }
 

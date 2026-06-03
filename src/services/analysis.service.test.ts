@@ -128,7 +128,7 @@ describe('performAnalysis (Business Logic)', () => {
       },
       defaultKeyStatistics: {
         trailingEps: 5,
-        priceToBook: 2.0,
+        priceToBook: 2,
       }
     };
     mockedGetStockDetails.mockResolvedValue(mockApiData as unknown as ReturnType<typeof getStockDetails>);
