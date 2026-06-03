@@ -1,6 +1,6 @@
 import { getStockDetails } from '../utils/apiWrapper';
 import Decimal from 'decimal.js';
-import { StockAnalysisResponse } from '../types/stockTypes';
+import { StockAnalysisResponse, FundamentalDataPayload } from '../types/stockTypes';
 import { cacheService } from './cacheService';
 import { SETTINGS } from '../config/settings';
 import { NotFoundError, InsufficientDataError } from '../types/errors';
@@ -29,6 +29,153 @@ function getRawValue(field: YahooField): number | null {
     return field.raw;
   }
   return null;
+}
+
+/**
+ * Normalizes and formats a numeric value to a fixed-decimal string, or null.
+ *
+ * @param val Number to format
+ * @param outDecimals Decimal places
+ * @returns Formatted string or null
+ */
+function formatDecimal(val: number | null, outDecimals: number): string | null {
+  if (val === null) return null;
+  return new Decimal(val).toFixed(outDecimals);
+}
+
+/**
+ * Computes "Net Debt / EBITDA" manually.
+ * Net Debt = (financialData.totalDebt || 0) - (financialData.totalCash || 0)
+ * Ratio = Net Debt / (financialData.ebitda || 1)
+ *
+ * @param totalDebt Raw total debt from financial data
+ * @param totalCash Raw total cash from financial data
+ * @param ebitda Raw ebitda from financial data
+ * @returns Net Debt / EBITDA ratio, or null if all fields are missing
+ */
+function calculateNetDebtToEbitda(
+  totalDebt: number | null,
+  totalCash: number | null,
+  ebitda: number | null
+): number | null {
+  if (totalDebt === null && totalCash === null && ebitda === null) {
+    return null;
+  }
+  const debt = new Decimal(totalDebt ?? 0);
+  const cash = new Decimal(totalCash ?? 0);
+  const netDebt = debt.minus(cash);
+  
+  // Use ebitda or 1 as fallback to prevent division by zero
+  const ebitdaVal = ebitda !== null && ebitda !== 0 ? ebitda : 1;
+  const denominator = new Decimal(ebitdaVal);
+  
+  return netDebt.dividedBy(denominator).toNumber();
+}
+
+/**
+ * Computes Return on Invested Capital (ROIC) using multi-statement historical inputs.
+ * NOPAT = Operating Income * (1 - (Tax Expense / Income Before Tax))
+ * Invested Capital = Total Debt + Total Shareholder Equity - Cash & Cash Equivalents
+ * ROIC = NOPAT / Invested Capital
+ *
+ * Returns null if any essential data points are missing.
+ *
+ * @param incomeStatement First entry in incomeStatementHistory
+ * @param balanceSheet First entry in balanceSheetHistory
+ * @returns Calculated ROIC ratio, or null if insufficient data
+ */
+function calculateROIC(
+  incomeStatement: any,
+  balanceSheet: any
+): number | null {
+  if (!incomeStatement || !balanceSheet) {
+    return null;
+  }
+
+  // 1. Extract and normalize income statement values
+  const operatingIncome = getRawValue(incomeStatement.operatingIncome);
+  const taxExpense = getRawValue(incomeStatement.incomeTaxExpense);
+  const incomeBeforeTax = getRawValue(incomeStatement.incomeBeforeTax);
+
+  if (operatingIncome === null || taxExpense === null || incomeBeforeTax === null || incomeBeforeTax === 0) {
+    return null;
+  }
+
+  // 2. Extract and normalize balance sheet values
+  // Support both totalDebt property or shortLongTermDebt + longTermDebt fallback
+  const rawTotalDebt = getRawValue(balanceSheet.totalDebt);
+  const totalDebt = rawTotalDebt !== null 
+    ? rawTotalDebt 
+    : ((getRawValue(balanceSheet.shortLongTermDebt) ?? 0) + (getRawValue(balanceSheet.longTermDebt) ?? 0));
+
+  const totalShareholderEquity = getRawValue(balanceSheet.totalStockholderEquity) ?? getRawValue(balanceSheet.totalShareholderEquity);
+  
+  const cashAndEquivalents = getRawValue(balanceSheet.cashAndCashEquivalents) 
+    ?? getRawValue(balanceSheet.cash) 
+    ?? getRawValue(balanceSheet.cashCashEquivalentsAndShortTermInvestments);
+
+  if (totalShareholderEquity === null || cashAndEquivalents === null) {
+    return null;
+  }
+
+  // 3. Compute NOPAT
+  // NOPAT = Operating Income * (1 - (Tax Expense / Income Before Tax))
+  const opIncDec = new Decimal(operatingIncome);
+  const taxExpDec = new Decimal(taxExpense);
+  const incBeforeTaxDec = new Decimal(incomeBeforeTax);
+  const taxRate = taxExpDec.dividedBy(incBeforeTaxDec);
+  const nopat = opIncDec.times(new Decimal(1).minus(taxRate));
+
+  // 4. Compute Invested Capital
+  // Invested Capital = Total Debt + Total Shareholder Equity - Cash & Cash Equivalents
+  const totalDebtDec = new Decimal(totalDebt);
+  const equityDec = new Decimal(totalShareholderEquity);
+  const cashDec = new Decimal(cashAndEquivalents);
+  const investedCapital = totalDebtDec.plus(equityDec).minus(cashDec);
+
+  if (investedCapital.isZero()) {
+    return null;
+  }
+
+  // 5. Compute ROIC
+  return nopat.dividedBy(investedCapital).toNumber();
+}
+
+/**
+ * Evaluates stock metrics and determines the qualitative analysis rating.
+ * 
+ * @param eps Trailing Earnings Per Share
+ * @param peRatio Calculated trailing P/E ratio Decimal object or null
+ * @param netDebtToEbitda Calculated Net Debt to EBITDA leverage ratio
+ * @returns Qualitative analysis statement (e.g. 'Potentially Undervalued', 'High Risk')
+ */
+function evaluateMetrics(
+  eps: number | null,
+  peRatio: Decimal | null,
+  netDebtToEbitda: number | null
+): string {
+  // Flag high risk if EPS is negative or missing
+  if (eps === null || eps <= 0) {
+    return 'High Risk (Unprofitable or No Data)';
+  }
+
+  // Flag high risk if leverage is too high (Net Debt / EBITDA > 4.0)
+  if (netDebtToEbitda !== null && netDebtToEbitda > 4.0) {
+    return 'High Risk (Elevated Leverage)';
+  }
+
+  // Determine valuation category based on P/E ratio
+  if (peRatio !== null) {
+    if (peRatio.lessThan(SETTINGS.analysis.peThresholdLow)) {
+      return 'Potentially Undervalued (Low P/E)';
+    } else if (peRatio.greaterThan(SETTINGS.analysis.peThresholdHigh)) {
+      return 'Potentially Overvalued (High P/E)';
+    } else {
+      return 'Fair Value Range';
+    }
+  }
+
+  return 'High Risk (Unprofitable or No Data)';
 }
 
 /**
@@ -79,44 +226,47 @@ export const performAnalysis = async (
 
   // FIX: Access library-defined 'financialCurrency' instead of undefined 'currency'
   const currency = financials?.financialCurrency || 'USD';
+  const outDecimals = SETTINGS.analysis.outputDecimals;
 
   const eps = getRawValue(stats?.trailingEps);
   const priceToBook = getRawValue(stats?.priceToBook);
 
-  // 4. Fundamental Calculations
-  let peRatioFormatted: string | null = null;
-  let analysisText;
-  let epsFormatted: string | undefined;
-  let pbFormatted: string | undefined;
+  // New native metrics
+  const enterpriseToEbitda = getRawValue((financials as any)?.enterpriseToEbitda);
+  const returnOnEquity = getRawValue(financials?.returnOnEquity);
+  const currentRatio = getRawValue(financials?.currentRatio);
 
-  const outDecimals = SETTINGS.analysis.outputDecimals;
+  // Leverage calculations (Net Debt / EBITDA)
+  const totalDebt = getRawValue(financials?.totalDebt);
+  const totalCash = getRawValue(financials?.totalCash);
+  const ebitda = getRawValue(financials?.ebitda);
+  const netDebtToEbitdaVal = calculateNetDebtToEbitda(totalDebt, totalCash, ebitda);
+
+  // Multi-statement ROIC calculations
+  const incomeStatement = rawData.incomeStatementHistory?.incomeStatementHistory?.[0];
+  const balanceSheet = rawData.balanceSheetHistory?.balanceSheetStatements?.[0];
+  const roicVal = calculateROIC(incomeStatement, balanceSheet);
+
+  // 4. Fundamental Calculations & Ratings
+  let peRatioFormatted: string | null = null;
+  let peDec: Decimal | null = null;
+  let epsFormatted: string | undefined;
 
   if (eps !== null && eps > 0) {
     const priceDec = new Decimal(currentPrice);
     const epsDec = new Decimal(eps);
-    const peRatio = priceDec.dividedBy(epsDec);
+    peDec = priceDec.dividedBy(epsDec);
 
-    peRatioFormatted = peRatio.toFixed(outDecimals);
+    peRatioFormatted = peDec.toFixed(outDecimals);
     epsFormatted = epsDec.toFixed(outDecimals);
-
-    if (peRatio.lessThan(SETTINGS.analysis.peThresholdLow)) {
-      analysisText = 'Potentially Undervalued (Low P/E)';
-    } else if (peRatio.greaterThan(SETTINGS.analysis.peThresholdHigh)) {
-      analysisText = 'Potentially Overvalued (High P/E)';
-    } else {
-      analysisText = 'Fair Value Range';
-    }
   } else {
     peRatioFormatted = 'N/A (Negative or Missing Earnings)';
-    analysisText = 'High Risk (Unprofitable or No Data)';
     if (eps !== null) {
       epsFormatted = new Decimal(eps).toFixed(outDecimals);
     }
   }
 
-  if (priceToBook !== null) {
-    pbFormatted = new Decimal(priceToBook).toFixed(outDecimals);
-  }
+  const analysisText = evaluateMetrics(eps, peDec, netDebtToEbitdaVal);
 
   // 5. Construct Response
   const response: StockAnalysisResponse = {
@@ -127,7 +277,12 @@ export const performAnalysis = async (
     indicators: {
       pe_ratio: peRatioFormatted,
       eps: epsFormatted,
-      pb_ratio: pbFormatted,
+      pb_ratio: formatDecimal(priceToBook, outDecimals) ?? undefined,
+      enterprise_to_ebitda: formatDecimal(enterpriseToEbitda, outDecimals),
+      return_on_equity: formatDecimal(returnOnEquity, outDecimals),
+      current_ratio: formatDecimal(currentRatio, outDecimals),
+      net_debt_to_ebitda: formatDecimal(netDebtToEbitdaVal, outDecimals),
+      roic: formatDecimal(roicVal, outDecimals),
     },
     generated_at: new Date().toISOString(),
   };

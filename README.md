@@ -15,7 +15,7 @@ This API is designed to serve as a portfolio-grade showcase of modern Node.js/Ty
 ## ⚡ Core Engineering Highlights
 
 * **Sub-5ms Latency (99.3% Reduction):** Implemented an in-memory caching layer (`node-cache`) with a TTL of 10 minutes, cutting average response times from **~800ms** (external API fetch) to **<5ms** on cache hits.
-* **Arbitrary Mathematical Precision:** Leverages `decimal.js` to perform financial math (such as P/E and price-to-book ratios), avoiding binary floating-point representation issues (`0.1 + 0.2 !== 0.3`) inherent in JavaScript.
+* **Arbitrary Mathematical Precision & Advanced Metrics:** Leverages `decimal.js` to perform financial math (such as P/E, P/B, leverage, and ROIC), avoiding binary floating-point representation issues (`0.1 + 0.2 !== 0.3`) inherent in JavaScript. Performs custom Net Debt / EBITDA computations and multi-statement Return on Invested Capital (ROIC).
 * **Smart Rate Limiting & Backpressure:** Employs `Bottleneck` to throttle upstream requests to Yahoo Finance (333ms delay, 1 concurrent request max), guaranteeing compliance with rate limits and preventing IP bans.
 * **Global Error-Handling Middleware:** Standardized HTTP responses by separating business-logic exceptions (`NotFoundError`, `InsufficientDataError`) from server infrastructure errors using a centralized Express middleware.
 * **100% Core Test Coverage:** Includes unit tests for math and logic, as well as route integration tests utilizing `supertest` to assert status codes, headers, and payloads.
@@ -93,7 +93,12 @@ Calculates fundamental metrics and yields a qualitative analysis rating for a gi
   "indicators": {
     "pe_ratio": "28.50",
     "eps": "7.91",
-    "pb_ratio": "45.12"
+    "pb_ratio": "45.12",
+    "enterprise_to_ebitda": "22.10",
+    "return_on_equity": "1.54",
+    "current_ratio": "1.20",
+    "net_debt_to_ebitda": "1.15",
+    "roic": "0.45"
   },
   "generated_at": "2026-06-01T18:48:00.000Z"
 }

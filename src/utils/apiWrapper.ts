@@ -28,8 +28,80 @@ export const getStockDetails = limiter.wrap(
   async (ticker: string) => {
     try {
       const result = await yahooFinance.quoteSummary(ticker, {
-        modules: ['financialData', 'defaultKeyStatistics', 'summaryDetail'],
+        modules: [
+          'financialData',
+          'defaultKeyStatistics',
+          'incomeStatementHistory',
+          'balanceSheetHistory',
+        ],
       });
+
+      // Helper to normalize Yahoo Finance field values
+      const getRawVal = (field: any): number | null => {
+        if (field === undefined || field === null) return null;
+        if (typeof field === 'number') return field;
+        if (typeof field === 'object' && typeof field.raw === 'number') return field.raw;
+        return null;
+      };
+
+      // Enrich statements using fundamentalsTimeSeries as a fallback if they return null/empty data (common since Nov 2024)
+      try {
+        const hasIncome = result.incomeStatementHistory?.incomeStatementHistory?.[0] &&
+          getRawVal(result.incomeStatementHistory.incomeStatementHistory[0].operatingIncome) !== null;
+        
+        const hasBalance = result.balanceSheetHistory?.balanceSheetStatements?.[0] &&
+          (getRawVal((result.balanceSheetHistory.balanceSheetStatements[0] as any).totalDebt) !== null ||
+           getRawVal((result.balanceSheetHistory.balanceSheetStatements[0] as any).shortLongTermDebt) !== null);
+
+        if (!hasIncome || !hasBalance) {
+          const oneYearAgo = new Date();
+          oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 2);
+          const timeSeries = await yahooFinance.fundamentalsTimeSeries(ticker, {
+            period1: oneYearAgo.toISOString().split('T')[0],
+            type: 'quarterly',
+            module: 'all',
+          });
+
+          if (timeSeries && timeSeries.length > 0) {
+            // Find the latest entry that has date
+            const latest = timeSeries[timeSeries.length - 1] as any;
+            
+            if (!hasIncome) {
+              result.incomeStatementHistory = {
+                maxAge: 1,
+                incomeStatementHistory: [
+                  {
+                    maxAge: 1,
+                    endDate: latest.date,
+                    operatingIncome: latest.operatingIncome ?? latest.EBIT ?? null,
+                    incomeTaxExpense: latest.taxProvision ?? null,
+                    incomeBeforeTax: latest.pretaxIncome ?? null,
+                  } as any
+                ]
+              };
+            }
+
+            if (!hasBalance) {
+              result.balanceSheetHistory = {
+                maxAge: 1,
+                balanceSheetStatements: [
+                  {
+                    maxAge: 1,
+                    endDate: latest.date,
+                    totalDebt: latest.totalDebt ?? null,
+                    totalStockholderEquity: latest.stockholdersEquity ?? latest.commonStockEquity ?? null,
+                    cashAndCashEquivalents: latest.cashAndCashEquivalents ?? latest.cashCashEquivalentsAndShortTermInvestments ?? null,
+                  } as any
+                ]
+              };
+            }
+          }
+        }
+      } catch (tsError) {
+        // eslint-disable-next-line no-console
+        console.warn(`Warning: Failed to fetch fundamentalsTimeSeries for ${ticker}:`, tsError);
+      }
+
       return result;
     } catch (error: unknown) {
       // Gracefully handle tickers that do not exist

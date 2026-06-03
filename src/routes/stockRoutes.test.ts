@@ -22,6 +22,11 @@ describe('GET /api/stocks/analyze/:ticker (Integration)', () => {
         pe_ratio: '30.00',
         eps: '5.00',
         pb_ratio: '3.50',
+        enterprise_to_ebitda: '12.50',
+        return_on_equity: '0.15',
+        current_ratio: '1.50',
+        net_debt_to_ebitda: '1.15',
+        roic: '0.19',
       },
       generated_at: new Date().toISOString(),
     };
