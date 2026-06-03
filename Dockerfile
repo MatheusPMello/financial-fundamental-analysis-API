@@ -14,8 +14,10 @@ RUN npm run build
 # ----------------------------
 FROM node:22-alpine AS runner
 WORKDIR /app
-COPY package*.json ./
+RUN chown node:node /app
+USER node
+COPY --chown=node:node package*.json ./
 RUN npm ci --only=production
-COPY --from=builder /app/dist ./dist
+COPY --chown=node:node --from=builder /app/dist ./dist
 EXPOSE 3000
 CMD ["node", "dist/server.js"]
